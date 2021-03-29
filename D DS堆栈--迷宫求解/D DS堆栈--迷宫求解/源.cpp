@@ -1,6 +1,211 @@
 #include<iostream>
 #include<stack>
 using namespace std;
+//迷宫类
+class Matrix
+{
+public:
+	int m;
+	int n;
+	int** data;
+public:
+	Matrix(int x, int y)
+	{
+		m = x;
+		n = y;
+		data = new int* [m];			  //先创建m行
+		for (int i = 0; i < m; i++)
+		{
+			data[i] = new int[n];       //再创建n列
+		}
+		for (int i = 0; i < m; i++)
+		{
+			for (int j = 0; j < n; j++)
+				cin >> data[i][j];
+		}
+	}
+};
+//用于存储通路坐标的结构
+struct cpos
+{
+	int x;
+	int y;
+	int z;    //记录路径中该格的上一格在该格所在的行还是该格所在行的上一行
+			  //z=0：表示该格的上一格在该格所在的行
+			  //z=1：表示该格的上一格在该格所在行的上一行
+};
+//迷宫求解函数
+void FindPath(Matrix& MiGong, stack<cpos>& path)
+{
+	if (MiGong.data[0][0] == 1)
+	{
+		cout << "no path" << endl;
+		return;
+	}
+	else
+	{
+		cpos p;
+		//从入口开始，从左到右地遍历迷宫；
+		int i = 0;
+		for (int j = 0; j <= MiGong.n; j++)
+		{
+			//如果该格可通且不碰壁，则压入path；
+			if ((MiGong.data[i][j] == 0) && (j != MiGong.n))
+			{
+				if ((path.empty() != true) && (path.top().x != i))
+				{
+					p.x = i;
+					p.y = j;
+					p.z = 1;
+					path.push(p);
+				}
+				else
+				{
+					p.x = i;
+					p.y = j;
+					p.z = 0;
+					path.push(p);
+				}
+				if ((i == MiGong.n - 1) && (j == MiGong.n - 1))
+					break;
+			}
+			else if ((MiGong.data[i][j] == 1) || (j == MiGong.n))
+			{
+				//如果已到最下面一行，则迷宫无解
+				if (i + 1 == MiGong.n)
+				{
+					cout << "no path" << endl;
+					//cout << "test1" << endl;
+					return;
+				}
+				else
+				{
+					//如果该格被堵住或者碰壁，但该格下面一格可通，则往下走；
+					if (MiGong.data[i + 1][j - 1] == 0)
+					{
+						i++;
+						j -= 2;
+					}
+					// 如果该格被堵住或者碰壁，且该格下面一格被堵住，则往左退格；
+					else if (MiGong.data[i + 1][j - 1] == 1)
+					{
+						int k = 0;
+						//往左退格直到某一格的下面一格可通行，才往下走；
+						//cout<<"test"<<endl;
+
+						//若上一格在当前这一行时
+						if (path.top().z == 0)
+						{
+							for (j -= 2; j >= 0; j--)
+							{
+								//cout<<"test1"<<endl;
+								path.pop();
+								if (MiGong.data[i][j] == 0)
+								{
+									if (MiGong.data[i + 1][j] == 0)
+									{
+										i++;
+										j--;
+										k++;
+										break;
+									}
+									if (path.top().z == 1)
+									{
+										for (j -= 1; j >= 0; j--)
+										{
+											if (MiGong.data[i][j] == 0)
+											{
+												p.x = i;
+												p.y = j;
+												path.push(p);
+												if (MiGong.data[i + 1][j] == 0)
+												{
+													i++;
+													j--;
+													k++;
+													break;
+												}
+											}
+											//往左退格时被堵住
+											else if (MiGong.data[i][j] == 1)
+											{
+												cout << "no path" << endl;
+												//cout << "test2" << endl;
+												return;
+											}
+										}
+									}
+								}
+								//往左退格时被堵住
+								else if (MiGong.data[i][j] == 1)
+								{
+									cout << "no path" << endl;
+									//cout << "test3" << endl;
+									return;
+								}
+							}
+						}
+						//若上一格在上面一行时
+						else if (path.top().z == 1)
+						{
+							for (j -= 2; j >= 0; j--)
+							{
+								//cout<<"test2"<<endl;
+								if (MiGong.data[i][j] == 0)
+								{
+									p.x = i;
+									p.y = j;
+									path.push(p);
+									if (MiGong.data[i + 1][j] == 0)
+									{
+										i++;
+										j--;
+										k++;
+										break;
+									}
+								}
+								//往左退格时被堵住
+								else if (MiGong.data[i][j] == 1)
+								{
+									cout << "no path" << endl;
+									//cout << "test4" << endl;
+									return;
+								}
+							}
+						}
+						//若往左退至无路可退，也无法往下走时，该迷宫无解；
+						if (k == 0)
+						{
+							cout << "no path" << endl;
+							//cout << "i=" << i << "j=" << j << endl;
+							//cout << "test5" << endl;
+							return;
+						}
+					}
+				}
+			}
+		}
+	}
+	//将路径压入peth1，转变成正序
+	stack<cpos> path1;
+	while (path.empty() != true)
+	{
+		path1.push(path.top());
+		path.pop();
+	}
+	//将路径正序输出
+	int i = 0;
+	while (path1.empty() != true)
+	{
+		cpos c = path1.top();
+		if ((++i) % 4 == 0)
+			cout << "[" << c.x << "," << c.y << "]" << "--" << endl;
+		else
+			cout << "[" << c.x << "," << c.y << "]" << "--";
+		path1.pop();
+	}
+	cout << "END" << endl;
+}
 int main()
 {
 	int t;
@@ -9,8 +214,11 @@ int main()
 	{
 		int n;
 		cin >> n;
-
+		Matrix MiGong(n, n);
+		stack<cpos> path;
+		FindPath(MiGong, path);
 	}
+	return 0;
 }
 /*
 题目描述
@@ -52,7 +260,7 @@ int main()
 
 		{	cpos = path1.top();
 
-			if ( (++i)%4 == 0 ) 
+			if ( (++i)%4 == 0 )
 
 				cout<<'['<<cpos.xp<<','<<cpos.yp<<']'<<"--"<<endl;
 
