@@ -47,17 +47,26 @@ bool JudgeOP(char c)
 }
 //比较两运算符的优先级
 //若运算符c1的优先级较高则返回true；否则返回false
-bool CompareLevel(char c1,char c2)
+//操作数k表示要进行哪种转换的运算符比较
+//k=1：波兰式转换比较
+//k!=1：逆波兰式转换比较
+bool CompareLevel(char c1,char c2,int k)
 {
 	if (c1 == '+')
 	{
 		if (c2 == '+')
 		{
-			return false;
+			if (k == 1)
+				return false;
+			else
+				return true;
 		}
 		else if (c2 == '-')
 		{
-			return false;
+			if (k == 1)
+				return false;
+			else
+				return true;
 		}
 		else if (c2 == '*')
 		{
@@ -72,11 +81,17 @@ bool CompareLevel(char c1,char c2)
 	{
 		if (c2 == '+')
 		{
-			return false;
+			if (k == 1)
+				return false;
+			else
+				return true;
 		}
 		else if (c2 == '-')
 		{
-			return false;
+			if (k == 1)
+				return false;
+			else
+				return true;
 		}
 		else if (c2 == '*')
 		{
@@ -99,11 +114,17 @@ bool CompareLevel(char c1,char c2)
 		}
 		else if (c2 == '*')
 		{
-			return false;
+			if (k == 1)
+				return false;
+			else
+				return true;
 		}
 		else if (c2 == '/')
 		{
-			return false;
+			if (k == 1)
+				return false;
+			else
+				return true;
 		}
 	}
 	else if (c1 == '/')
@@ -118,19 +139,26 @@ bool CompareLevel(char c1,char c2)
 		}
 		else if (c2 == '*')
 		{
-			return false;
+			if (k == 1)
+				return false;
+			else
+				return true;
 		}
 		else if (c2 == '/')
 		{
-			return false;
+			if (k == 1)
+				return false;
+			else
+				return true;
 		}
 	}
 }
-void PolishChange(InPut* input,int len)
+//波兰式转换
+void PNchange(InPut* input,int len)
 {
 	stack<InPut> output;
 	stack<InPut> OPTR;
-	//从后往前开始扫描input
+	//从后往前开始扫描表达式
 	for (int i = 0; i < len; i++)
 	{
 		//若扫描到的input[i]是操作数
@@ -152,7 +180,7 @@ void PolishChange(InPut* input,int len)
 			}
 			else
 			{
-				if ((OPTR.top().op == ')') || (CompareLevel(OPTR.top().op, input[i].op) == false))
+				if ((OPTR.top().op == ')') || (CompareLevel(OPTR.top().op, input[i].op,1) == false))
 				{
 					OPTR.push(input[i]);
 				}
@@ -166,15 +194,20 @@ void PolishChange(InPut* input,int len)
 			}
 		}
 		//若扫描到的input[i]是开括号'('
-
 		if ((input[i].number == -999) && (input[i].op == '('))
 		{
 			while (OPTR.top().op != ')')
 			{
 				output.push(OPTR.top());
 				OPTR.pop();
+				if (OPTR.empty() == true)
+					break;
 			}
-			OPTR.pop();
+			if (OPTR.empty() != true)
+			{
+				if(OPTR.top().op == ')')
+					OPTR.pop();
+			}
 		}
 	}
 	//若扫描结束后运算符栈不为空
@@ -210,18 +243,112 @@ void PolishChange(InPut* input,int len)
 	}
 	cout << endl;
 }
+//逆波兰式转换
+void RPNchange(InPut* input, int len)
+{
+	stack<InPut> output;
+	stack<InPut> OPTR;
+	//从前往后开始扫描表达式
+	for (int i = len - 1; i >= 0; i--)
+	{
+		//若扫描到的input[i]是操作数
+		if ((input[i].number != -999) && (input[i].op == 'N'))
+		{
+			output.push(input[i]);
+		}
+		//若扫描到的input[i]是开括号'('
+		if ((input[i].number == -999) && (input[i].op == '('))
+		{
+			OPTR.push(input[i]);
+		}
+		//若扫描到的input[i]是运算符
+		if ((input[i].number == -999) && (input[i].op != 'N') && (input[i].op != '(') && (input[i].op != ')'))
+		{
+			if (OPTR.empty() == true)
+			{
+				OPTR.push(input[i]);
+			}
+			else
+			{
+				if ((OPTR.top().op == '(') || (CompareLevel(OPTR.top().op, input[i].op, 2) == false))
+				{
+					OPTR.push(input[i]);
+				}
+				else
+				{
+					output.push(OPTR.top());
+					OPTR.pop();
+					i++;
+					continue;
+				}
+			}
+		}
+		//若扫描到的input[i]是闭括号')'
+		if ((input[i].number == -999) && (input[i].op == ')'))
+		{
+			while (OPTR.top().op != '(')
+			{
+				output.push(OPTR.top());
+				OPTR.pop();
+				if (OPTR.empty() == true)
+					break;
+			}
+			if(OPTR.empty() != true)
+				OPTR.pop();
+		}
+	}
+	//若扫描结束后运算符栈不为空
+	if (OPTR.empty() != true)
+	{
+		while (OPTR.empty() != true)
+		{
+			output.push(OPTR.top());
+			OPTR.pop();
+		}
+	}
+	//输出结果
+	stack<InPut> output1;
+	while (output.empty() != true)
+	{
+		output1.push(output.top());
+		output.pop();
+	}
+	int k = 0;
+	while (output1.empty() != true)
+	{
+		if (k == 0)
+		{
+			if ((output1.top().number != -999) && (output1.top().op == 'N'))
+				cout << output1.top().number;
+			else if ((output1.top().number == -999) && (output1.top().op != 'N'))
+				cout << output1.top().op;
+			output1.pop();
+			k++;
+		}
+		else
+		{
+			if ((output1.top().number != -999) && (output1.top().op == 'N'))
+				cout << " " << output1.top().number;
+			else if ((output1.top().number == -999) && (output1.top().op != 'N'))
+				cout << " " << output1.top().op;
+			output1.pop();
+		}
+	}
+	cout << endl;
+}
 int main()
 {
 	int t;
 	cin >> t;
 	while (t--)
 	{
-		InPut* input = new InPut[500];
+		InPut* input = new InPut[100];
 		string ip;
 		cin >> ip;
 		int n = 0;
 		int k = 1;
 		int j = 0;
+		//从后往前将表达式ip转换到InPut结构数组里
 		for (int i = ip.length()-1; i >=0 ; i--)
 		{
 			n = 0;
@@ -243,8 +370,6 @@ int main()
 				input[j].number = n;
 				input[j].op = 'N';
 				j++;
-				if (i == 0)
-					break;
 			}
 			if (JudgeOP(ip[i]))
 			{
@@ -253,7 +378,10 @@ int main()
 				j++;
 			}
 		}
-		PolishChange(input, j);
+		PNchange(input, j);
+		RPNchange(input, j);
+		cout << endl;
+		delete[] input;
 	}
 }
 /*题目描述
